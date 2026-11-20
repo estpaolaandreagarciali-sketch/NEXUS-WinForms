@@ -1,0 +1,15 @@
+# .NET / Visual Studio
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+
+# IDE
+.idea/
+.vscode/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
