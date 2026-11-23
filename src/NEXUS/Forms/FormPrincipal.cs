@@ -19,6 +19,9 @@ namespace NEXUS.Forms;
 public sealed class FormPrincipal : Form
 {
     private readonly MotorJuego motor = new MotorJuego();
+    private readonly RepositorioPartidasSql repositorio = new RepositorioPartidasSql(
+        Environment.GetEnvironmentVariable("NEXUS_SQL_CONNECTION") ??
+        "Server=localhost;Database=NEXUS;Integrated Security=True;Encrypt=False;TrustServerCertificate=True");
 
     // ---------------- PANTALLAS ----------------
     private readonly PanelEstrellas pantallaMenu = new PanelEstrellas(true);
@@ -705,7 +708,7 @@ public sealed class FormPrincipal : Form
         AgregarAccion(acciones, "CAMBIAR REALIDAD  [R]", 0, 1, false, CambiarRealidad);
         AgregarAccion(acciones, "ATACAR  [F]", 1, 1, false, () => { motor.Atacar(); Refrescar(); });
         AgregarAccion(acciones, "AYUDA  [H]", 0, 2, false, MostrarAyuda);
-        AgregarAccion(acciones, "ABANDONAR  [Q]", 1, 2, false, Abandonar);
+        AgregarAccion(acciones, "GUARDAR  [Ctrl+S]", 1, 2, true, GuardarPartida);
         marcoAcciones.Controls.Add(acciones);
         columna.Controls.Add(marcoAcciones, 0, 1);
 
@@ -818,6 +821,9 @@ public sealed class FormPrincipal : Form
         // Fuera de la pantalla de juego, el teclado funciona normal.
         if (!pantallaJuego.Visible || !motor.PartidaActiva) return base.ProcessCmdKey(ref msg, keyData);
 
+        if (keyData == (Keys.Control | Keys.S)) { GuardarPartida(); return true; }
+        if (keyData == (Keys.Control | Keys.L)) { CargarPartida(); return true; }
+
         // 2) Inventario abierto.
         if (panelInventario.Visible)
         {
@@ -864,6 +870,38 @@ public sealed class FormPrincipal : Form
             return true;
         }
         return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    private async void GuardarPartida()
+    {
+        try
+        {
+            string json = motor.ExportarPartidaJson();
+            Guid id = await repositorio.GuardarAsync(motor.Cadete.Nombre, json);
+            AgregarBitacora(new MensajeBitacora($"Partida guardada en SQL Server ({id}).", ConsoleColor.Green));
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "No se pudo guardar la partida. Comprueba la conexión y ejecuta database/01_crear_base.sql.\n\n" + ex.Message,
+                "Error de persistencia", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private async void CargarPartida()
+    {
+        try
+        {
+            var guardada = await repositorio.CargarUltimaAsync();
+            if (guardada == null) { MessageBox.Show(this, "No hay partidas guardadas.", "NEXUS", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+            motor.ImportarPartidaJson(guardada.Value.EstadoJson);
+            bitacora.Clear(); PrepararBarras(); MostrarPantalla(pantallaJuego); Refrescar();
+            AgregarBitacora(new MensajeBitacora($"Partida de {guardada.Value.Nombre} recuperada desde SQL Server.", ConsoleColor.Green));
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "No se pudo cargar la partida. Comprueba SQL Server y el esquema.\n\n" + ex.Message,
+                "Error de persistencia", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     // ======================================================
