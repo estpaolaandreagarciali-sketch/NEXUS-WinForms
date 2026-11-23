@@ -62,6 +62,14 @@ public class Cadete : Personaje
     public void Curar(int cantidad) => Salud = Limitar(Salud + cantidad);
     public void AgregarXP(int cantidad) => XP += cantidad;
 
+    public void RestaurarEstado(int salud, int energia, int estabilidad, int escudo, int xp, int danioExtra,
+        IEnumerable<TipoObjeto> inventario)
+    {
+        Salud = Limitar(salud); Energia = Limitar(energia); Estabilidad = Limitar(estabilidad);
+        Escudo = Limitar(escudo); XP = Math.Max(0, xp); DanioExtra = Math.Max(0, danioExtra);
+        Inventario.Importar(inventario);
+    }
+
     // El escudo absorbe el daño primero; lo que sobra baja la salud.
     public override int RecibirDanio(int danio)
     {

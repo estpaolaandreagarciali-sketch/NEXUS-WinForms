@@ -30,6 +30,19 @@ public class Realidad
     public int Filas => mapa.GetLength(0);
     public int Columnas => mapa.GetLength(1);
 
+    public EstadoRealidad ExportarEstado()
+    {
+        var plano = new string[Filas]; var vista = new bool[Filas * Columnas]; var pisada = new bool[vista.Length];
+        for (int f=0; f<Filas; f++) { var fila = new char[Columnas]; for (int c=0;c<Columnas;c++) { fila[c]=mapa[f,c]; vista[f*Columnas+c]=descubierto[f,c]; pisada[f*Columnas+c]=visitado[f,c]; } plano[f]=new string(fila); }
+        return new EstadoRealidad(Codigo, plano, vista, pisada);
+    }
+
+    public void ImportarEstado(EstadoRealidad estado)
+    {
+        if (estado.Codigo != Codigo || estado.Plano.Length != Filas) throw new ArgumentException("El mapa guardado no coincide con esta realidad.");
+        for (int f=0; f<Filas; f++) { if (estado.Plano[f].Length != Columnas) throw new ArgumentException("Dimensiones de mapa inválidas."); for(int c=0;c<Columnas;c++){ mapa[f,c]=estado.Plano[f][c]; int i=f*Columnas+c; descubierto[f,c]=i<estado.Descubierto.Length && estado.Descubierto[i]; visitado[f,c]=i<estado.Visitado.Length && estado.Visitado[i]; } }
+    }
+
     public Realidad(string codigo, string nombre, string descripcion, int nivelRiesgo,
                     ConsoleColor color, string[] plano)
     {
@@ -139,3 +152,5 @@ public class Realidad
         return total == 0 ? 0 : vistas * 100 / total;
     }
 }
+
+public sealed record EstadoRealidad(string Codigo, string[] Plano, bool[] Descubierto, bool[] Visitado);

@@ -25,6 +25,13 @@ public class Mision
 
     private readonly bool[] cumplidos = new bool[4];
 
+    public bool[] ExportarEstado() => (bool[])cumplidos.Clone();
+    public void ImportarEstado(bool[] estado)
+    {
+        Array.Clear(cumplidos);
+        for (int i = 0; i < Math.Min(estado?.Length ?? 0, cumplidos.Length); i++) cumplidos[i] = estado[i];
+    }
+
     public bool EstaCumplido(int objetivo)
     {
         if (objetivo < 0 || objetivo >= cumplidos.Length) return false;

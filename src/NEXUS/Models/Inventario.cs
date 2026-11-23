@@ -11,6 +11,14 @@ public class Inventario
 
     private Objeto[] ranuras = new Objeto[Capacidad];
 
+    public TipoObjeto[] Exportar() => ranuras.Where(x => x != null).Select(x => x.Tipo).ToArray();
+
+    public void Importar(IEnumerable<TipoObjeto> tipos)
+    {
+        ranuras = new Objeto[Capacidad];
+        foreach (TipoObjeto tipo in tipos.Take(Capacidad)) Agregar(new Objeto(tipo));
+    }
+
     // Cuenta las ranuras ocupadas recorriendo el arreglo.
     public int Cantidad
     {
