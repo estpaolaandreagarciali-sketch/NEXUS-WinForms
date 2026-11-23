@@ -1,4 +1,5 @@
 using NEXUS.Models;
+using System.Text.Json;
 
 namespace NEXUS.Services;
 
@@ -23,6 +24,37 @@ public enum OrigenEncuentro
 // ============================================================
 public class MotorJuego
 {
+    public string ExportarPartidaJson()
+    {
+        if (!PartidaActiva || Cadete == null) throw new InvalidOperationException("No hay una partida activa que guardar.");
+        return JsonSerializer.Serialize(new EstadoPartidaNexus(Cadete.Nombre, Cadete.Salud, Cadete.Energia,
+            Cadete.Estabilidad, Cadete.Escudo, Cadete.XP, Cadete.DanioExtra, Cadete.Inventario.Exportar(),
+            Mision.ExportarEstado(), RealidadActual?.Codigo, Fila, Columna, Turnos,
+            Realidades.Select(r => r.ExportarEstado()).ToArray()));
+    }
+
+    public void ImportarPartidaJson(string json)
+    {
+        EstadoPartidaNexus estado = JsonSerializer.Deserialize<EstadoPartidaNexus>(json)
+            ?? throw new InvalidDataException("El archivo de partida está vacío o dañado.");
+        if (string.IsNullOrWhiteSpace(estado.Nombre) || estado.Nombre.Length > 14 || estado.Turnos < 0 || estado.Realidades.Length != 3)
+            throw new InvalidDataException("La partida contiene datos incompatibles.");
+        NuevaPartida(estado.Nombre);
+        Cadete.RestaurarEstado(estado.Salud, estado.Energia, estado.Estabilidad, estado.Escudo, estado.Xp,
+            estado.DanioExtra, estado.Inventario);
+        Mision.ImportarEstado(estado.Objetivos);
+        for (int i=0; i<Realidades.Length; i++) Realidades[i].ImportarEstado(estado.Realidades[i]);
+        Turnos = estado.Turnos;
+        RealidadActual = estado.CodigoRealidad == null ? null : Realidades.SingleOrDefault(r => r.Codigo == estado.CodigoRealidad);
+        if (estado.CodigoRealidad != null && RealidadActual == null) throw new InvalidDataException("La realidad guardada no existe.");
+        if (RealidadActual != null && !RealidadActual.EstaDentro(estado.Fila, estado.Columna)) throw new InvalidDataException("La posición guardada no es válida.");
+        Fila = estado.Fila; Columna = estado.Columna; EntidadActual = null; PartidaActiva = true;
+        if (RealidadActual != null) { RealidadActual.Descubrir(Fila, Columna); RealidadActual.MarcarVisitado(Fila, Columna); }
+    }
+
+    private sealed record EstadoPartidaNexus(string Nombre, int Salud, int Energia, int Estabilidad, int Escudo,
+        int Xp, int DanioExtra, TipoObjeto[] Inventario, bool[] Objetivos, string CodigoRealidad,
+        int Fila, int Columna, int Turnos, EstadoRealidad[] Realidades);
     public const int IndiceRealidadMision = 2; // R-404 es la tercera del arreglo
 
     // ---------------- ESTADO (la ventana lo lee) ----------------
