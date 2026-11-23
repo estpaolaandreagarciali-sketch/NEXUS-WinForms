@@ -1,0 +1,18 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio and user-specific settings
+.vs/
+*.user
+*.suo
+
+# Runtime-generated IRIS channel
+iris_canal.txt
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
